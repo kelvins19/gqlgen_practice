@@ -38,17 +38,16 @@ mutation createCategory {
 #### Get Categories
 ```
 query getCategories {
- categories {
-     id
-     name
-     description
-     products {
-      id
+  getCategories {
+    id
+    name
+    description
+    products {
       name
       description
       price
-     }
- }
+    }
+  }
 }
 ```
 
