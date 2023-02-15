@@ -40,7 +40,9 @@ type Query {
 
 type Mutation {
   createProduct(input: NewProduct!): Products!
-  
+  updateProduct(id: Int!, input: NewProduct!): Products!
+  deleteProduct(id: Int!): Products!
+
   createCategory(input: NewCategory!): Categories!
   updateCategory(id: Int!, input: NewCategory!): Categories!
   deleteCategory(id: Int!): Categories!

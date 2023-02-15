@@ -12,6 +12,7 @@ import (
 
 	"github.com/kelvins19/BCX_BE/entity"
 	"github.com/kelvins19/BCX_BE/graph/model"
+	"github.com/kelvins19/BCX_BE/helper"
 )
 
 // Products is the resolver for the products field.
@@ -61,6 +62,40 @@ func (r *mutationResolver) CreateProduct(ctx context.Context, input model.NewPro
 	return &newModel, nil
 }
 
+// UpdateProduct is the resolver for the updateProduct field.
+func (r *mutationResolver) UpdateProduct(ctx context.Context, id int, input model.NewProduct) (*model.Products, error) {
+	panic(fmt.Errorf("not implemented: UpdateProduct - updateProduct"))
+}
+
+// DeleteProduct is the resolver for the deleteProduct field.
+func (r *mutationResolver) DeleteProduct(ctx context.Context, id int) (*model.Products, error) {
+	data := []*entity.Products{}
+	whereValue := helper.SliceToSql([]int{id}, "(")
+	err := r.DB.NewSelect().Model(&data).Where(fmt.Sprintf("id in %s", whereValue)).Order("id asc").Scan(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("error finding products: %v", err)
+	}
+
+	ProductsModel := entity.Products{}
+	_, err = r.DB.NewDelete().
+		Model(&ProductsModel).
+		Where("id = ?", id).
+		Exec(ctx)
+
+	if err != nil {
+		return nil, fmt.Errorf("error deleting products: %v", err)
+	}
+
+	newModel := model.Products{
+		ID:           data[0].ID,
+		Name:         data[0].Name,
+		Description:  data[0].Description,
+		Price:        data[0].Price,
+		CategoriesId: data[0].Categories,
+	}
+	return &newModel, nil
+}
+
 // CreateCategory is the resolver for the createCategory field.
 func (r *mutationResolver) CreateCategory(ctx context.Context, input model.NewCategory) (*model.Categories, error) {
 	category := entity.Categories{
@@ -84,19 +119,67 @@ func (r *mutationResolver) CreateCategory(ctx context.Context, input model.NewCa
 
 // UpdateCategory is the resolver for the updateCategory field.
 func (r *mutationResolver) UpdateCategory(ctx context.Context, id int, input model.NewCategory) (*model.Categories, error) {
-	panic(fmt.Errorf("not implemented: UpdateCategory - updateCategory"))
+	data := []*entity.Categories{}
+	whereValue := helper.SliceToSql([]int{id}, "(")
+	err := r.DB.NewSelect().Model(&data).Where(fmt.Sprintf("id in %s", whereValue)).Order("id asc").Scan(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("error finding categories: %v", err)
+	}
+
+	data[0].Name = input.Name
+	data[0].Description = &input.Description
+
+	_, err = r.DB.NewUpdate().
+		Model(&data).
+		SetColumn("name", "?", input.Name).
+		SetColumn("description", "?", &input.Description).
+		Where("id = ?", id).
+		Exec(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	newModel := model.Categories{
+		ID:          id,
+		Name:        data[0].Name,
+		Description: data[0].Description,
+	}
+
+	return &newModel, nil
 }
 
 // DeleteCategory is the resolver for the deleteCategory field.
 func (r *mutationResolver) DeleteCategory(ctx context.Context, id int) (*model.Categories, error) {
-	panic(fmt.Errorf("not implemented: DeleteCategory - deleteCategory"))
+	data := []*entity.Categories{}
+	whereValue := helper.SliceToSql([]int{id}, "(")
+	err := r.DB.NewSelect().Model(&data).Where(fmt.Sprintf("id in %s", whereValue)).Order("id asc").Scan(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("error finding categories: %v", err)
+	}
+
+	CategoriesModel := entity.Categories{}
+	_, err = r.DB.NewDelete().
+		Model(&CategoriesModel).
+		Where("id = ?", id).
+		Exec(ctx)
+
+	if err != nil {
+		return nil, fmt.Errorf("error deleting categories: %v", err)
+	}
+
+	newModel := model.Categories{
+		ID:          data[0].ID,
+		Name:        data[0].Name,
+		Description: data[0].Description,
+	}
+	return &newModel, nil
 }
 
 // Categories is the resolver for the categories field.
 func (r *productsResolver) Categories(ctx context.Context, obj *model.Products) ([]*model.Categories, error) {
 	data := []*entity.Categories{}
 
-	whereValue := sliceToSql(obj.CategoriesId, "(")
+	whereValue := helper.SliceToSql(obj.CategoriesId, "(")
 	err := r.DB.NewSelect().Model(&data).Where(fmt.Sprintf("id in %s", whereValue)).Order("id asc").Scan(ctx)
 	if err != nil {
 		return nil, err
@@ -135,7 +218,7 @@ func (r *queryResolver) GetCategories(ctx context.Context) ([]*model.Categories,
 // GetSingleCategories is the resolver for the getSingleCategories field.
 func (r *queryResolver) GetSingleCategories(ctx context.Context, id int) (*model.Categories, error) {
 	data := []*entity.Categories{}
-	whereValue := sliceToSql([]int{id}, "(")
+	whereValue := helper.SliceToSql([]int{id}, "(")
 	err := r.DB.NewSelect().Model(&data).Where(fmt.Sprintf("id in %s", whereValue)).Order("id asc").Scan(ctx)
 
 	if err != nil {
@@ -157,7 +240,23 @@ func (r *queryResolver) GetSingleCategories(ctx context.Context, id int) (*model
 // GetProducts is the resolver for the getProducts field.
 func (r *queryResolver) GetProducts(ctx context.Context, categoryID *int, name *string) ([]*model.Products, error) {
 	if categoryID == nil {
-		return getAllProducts(r, ctx)
+		data := []*entity.Products{}
+		err := r.DB.NewSelect().Model(&data).Order("id asc").Scan(ctx)
+		if err != nil {
+			return nil, err
+		}
+
+		list := []*model.Products{}
+		for _, v := range data {
+			list = append(list, &model.Products{
+				ID:           v.ID,
+				Name:         v.Name,
+				Description:  v.Description,
+				CategoriesId: v.Categories,
+				Price:        v.Price,
+			})
+		}
+		return list, nil
 	}
 
 	// data, err := serv.ProductsRepo.GetByCategory(c, *category, *name)
@@ -197,7 +296,7 @@ func (r *queryResolver) GetProducts(ctx context.Context, categoryID *int, name *
 func (r *queryResolver) GetSingleProducts(ctx context.Context, id int) (*model.Products, error) {
 	// panic(fmt.Errorf("not implemented: GetSingleProducts - getSingleProducts"))
 	data := []*entity.Products{}
-	whereValue := sliceToSql([]int{id}, "(")
+	whereValue := helper.SliceToSql([]int{id}, "(")
 	err := r.DB.NewSelect().Model(&data).Where(fmt.Sprintf("id in %s", whereValue)).Order("id asc").Scan(ctx)
 
 	if err != nil {
@@ -234,56 +333,3 @@ type categoriesResolver struct{ *Resolver }
 type mutationResolver struct{ *Resolver }
 type productsResolver struct{ *Resolver }
 type queryResolver struct{ *Resolver }
-
-// !!! WARNING !!!
-// The code below was going to be deleted when updating resolvers. It has been copied here so you have
-// one last chance to move it out of harms way if you want. There are two reasons this happens:
-//   - When renaming or deleting a resolver the old code will be put in here. You can safely delete
-//     it when you're done.
-//   - You have helper methods in this file. Move them out to keep these resolver files clean.
-func getAllProducts(r *queryResolver, c context.Context) ([]*model.Products, error) {
-	data := []*entity.Products{}
-	err := r.DB.NewSelect().Model(&data).Order("id asc").Scan(c)
-	if err != nil {
-		return nil, err
-	}
-
-	list := []*model.Products{}
-	for _, v := range data {
-		list = append(list, &model.Products{
-			ID:           v.ID,
-			Name:         v.Name,
-			Description:  v.Description,
-			CategoriesId: v.Categories,
-			Price:        v.Price,
-		})
-	}
-	return list, nil
-}
-func sliceToSql[T comparable](slice []T, scope string) string {
-	var prefix, suffix string
-	switch scope {
-	case "(":
-		prefix = "("
-		suffix = ")"
-	case "{":
-		prefix = "{"
-		suffix = "}"
-	case "[":
-		prefix = "["
-		suffix = "]"
-	default:
-		prefix = "("
-		suffix = ")"
-	}
-
-	query := prefix
-	for i, v := range slice {
-		query += fmt.Sprintf("%v", v)
-		if i < len(slice)-1 {
-			query += ", "
-		}
-	}
-	query += suffix
-	return query
-}

@@ -33,7 +33,32 @@ mutation createCategory {
 ```
 
 #### Update Category
+```
+mutation updateCategory {
+  updateCategory (
+    id: 6,
+    input: {
+      name: "Test 6",
+      description: "Test6"
+    }
+  ) {
+    id
+    name
+    description
+  }
+}
+```
+
 #### Delete Category
+```
+mutation deleteCategory {
+  deleteCategory (id: 7) {
+    id
+    name
+    description
+  }
+}
+```
 
 #### Get Categories
 ```
@@ -117,4 +142,15 @@ query getSingleProducts {
 ```
 
 #### Update Product
+
 #### Delete Product
+```
+mutation deleteProduct {
+  deleteProduct (id: 3) {
+    id
+    name
+    description
+    price
+  }
+}
+```
