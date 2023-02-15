@@ -109,6 +109,43 @@ mutation createProduct {
 }
 ```
 
+#### Update Product
+```
+mutation updateProduct {
+  updateProduct (
+    id: 2,
+    input: {
+      name: "Adidas UltraBoost",
+      description: "Ultraboost",
+      price: 2299000,
+      categories: [2,3]
+    }
+  ) {
+    id
+    name
+    description
+    price
+    categories {
+      id
+      name
+      description
+    }
+  }
+}
+```
+
+#### Delete Product
+```
+mutation deleteProduct {
+  deleteProduct (id: 3) {
+    id
+    name
+    description
+    price
+  }
+}
+```
+
 #### Get Products
 ```
 query getProduct {
@@ -137,20 +174,6 @@ query getSingleProducts {
       name
       description
     }
-  }
-}
-```
-
-#### Update Product
-
-#### Delete Product
-```
-mutation deleteProduct {
-  deleteProduct (id: 3) {
-    id
-    name
-    description
-    price
   }
 }
 ```

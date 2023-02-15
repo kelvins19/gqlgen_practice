@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"regexp"
 	"strings"
+	"time"
 
 	"github.com/kelvins19/BCX_BE/entity"
 	"github.com/kelvins19/BCX_BE/graph/model"
@@ -64,7 +65,41 @@ func (r *mutationResolver) CreateProduct(ctx context.Context, input model.NewPro
 
 // UpdateProduct is the resolver for the updateProduct field.
 func (r *mutationResolver) UpdateProduct(ctx context.Context, id int, input model.NewProduct) (*model.Products, error) {
-	panic(fmt.Errorf("not implemented: UpdateProduct - updateProduct"))
+	// panic(fmt.Errorf("not implemented: UpdateProduct - updateProduct"))
+	data := []*entity.Products{}
+	whereValue := helper.SliceToSql([]int{id}, "(")
+	err := r.DB.NewSelect().Model(&data).Where(fmt.Sprintf("id in %s", whereValue)).Order("id asc").Scan(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("error finding products: %v", err)
+	}
+
+	data[0].Name = input.Name
+	data[0].Description = &input.Description
+	data[0].Price = input.Price
+	data[0].Categories = input.Categories
+
+	_, err = r.DB.NewUpdate().
+		Model(&data).
+		SetColumn("name", "?", input.Name).
+		SetColumn("description", "?", &input.Description).
+		SetColumn("categories", "?", helper.SliceToSql(input.Categories, "{")).
+		SetColumn("price", "?", fmt.Sprintf("%d", input.Price)).
+		SetColumn("updated_at", "?", time.Now()).
+		Where("id = ?", id).
+		Exec(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	newModel := model.Products{
+		ID:           id,
+		Name:         data[0].Name,
+		Description:  data[0].Description,
+		Price:        data[0].Price,
+		CategoriesId: data[0].Categories,
+	}
+
+	return &newModel, nil
 }
 
 // DeleteProduct is the resolver for the deleteProduct field.
@@ -133,6 +168,7 @@ func (r *mutationResolver) UpdateCategory(ctx context.Context, id int, input mod
 		Model(&data).
 		SetColumn("name", "?", input.Name).
 		SetColumn("description", "?", &input.Description).
+		SetColumn("updated_at", "?", time.Now()).
 		Where("id = ?", id).
 		Exec(ctx)
 	if err != nil {
