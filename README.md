@@ -5,7 +5,8 @@
 - gqlgen for GraphQL framework
 - PostgreSQL for database
 - bun for ORM
-- sql-migrate for database migrations
+- [sql-migrate](https://github.com/rubenv/sql-migrate) for database migrations
+- [Viper](https://github.com/spf13/viper) for configuration reader
 
 **To Generate a GraphQL Resolver**
 Run `go run github.com/99designs/gqlgen generate`
