@@ -5,9 +5,17 @@
 - gqlgen for GraphQL framework
 - PostgreSQL for database
 - bun for ORM
+- sql-migrate for database migrations
 
 **To Generate a GraphQL Resolver**
 Run `go run github.com/99designs/gqlgen generate`
+
+## How to run migrations
+1. Run `go install github.com/rubenv/sql-migrate/...@latest`
+2. Run `sql-migrate up -config=dbconfig.yml`
+
+**To Create new migrations file**
+Run `sql-migrate new -config=dbconfig.yml -env="ENV" <MIGRATION_NAME>`
 
 ## How to setup the application
 1. Go to the project directory

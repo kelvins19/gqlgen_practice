@@ -1,24 +1,28 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"net/http"
-	"os"
 
 	"github.com/99designs/gqlgen/graphql/handler"
 	"github.com/99designs/gqlgen/graphql/playground"
 	"github.com/joho/godotenv"
 	generated "github.com/kelvins19/BCX_BE/graph"
 	graph "github.com/kelvins19/BCX_BE/graph"
+	"github.com/spf13/viper"
 )
 
 const defaultPort = "8080"
 
 func main() {
-	port := os.Getenv("PORT")
-	if port == "" {
-		port = defaultPort
-	}
+	viper.SetConfigType("env")
+	viper.AutomaticEnv()
+
+	// Set a default value for the port number
+	viper.SetDefault("PORT", "8080")
+	port := viper.GetString("PORT")
+	fmt.Printf("Starting server on port %s\n", port)
 
 	err := godotenv.Load()
 	if err != nil {
@@ -35,10 +39,3 @@ func main() {
 	log.Printf("connect to http://localhost:%s/ for GraphQL playground", port)
 	log.Fatal(http.ListenAndServe(":"+port, nil))
 }
-
-// func middleware(next http.Handler) http.Handler {
-// 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-// 		ctx := context.WithValue(r.Context(), dataloader.LoaderKey, loader)
-// 		next.ServeHTTP(w, r.WithContext(ctx))
-// 	})
-// }
