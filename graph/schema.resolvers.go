@@ -36,6 +36,7 @@ func (r *categoriesResolver) Products(ctx context.Context, obj *model.Categories
 		})
 	}
 	return lists, nil
+	// return r.StorageService.GetProduct(ctx, obj.ID)
 }
 
 // CreateProduct is the resolver for the createProduct field.
@@ -230,6 +231,7 @@ func (r *productsResolver) Categories(ctx context.Context, obj *model.Products) 
 		})
 	}
 	return lists, nil
+	// return r.StorageService.GetCategory(ctx, obj.CategoriesId)
 }
 
 // GetCategories is the resolver for the getCategories field.

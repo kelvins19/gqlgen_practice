@@ -4,6 +4,7 @@ go 1.19
 
 require (
 	github.com/99designs/gqlgen v0.17.22
+	github.com/graph-gophers/dataloader/v7 v7.1.0
 	github.com/joho/godotenv v1.4.0
 	github.com/uptrace/bun v1.1.11
 	github.com/uptrace/bun/dialect/pgdialect v1.1.11
