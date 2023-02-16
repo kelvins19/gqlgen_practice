@@ -1,0 +1,6 @@
+development:
+  dialect: postgres
+  url: postgres://kelvin@127.0.0.1:5432/postgres?sslmode=disable
+  dir: migrations
+  datasource: postgres://kelvin@127.0.0.1:5432/postgres?sslmode=disable
+  table: migrations
