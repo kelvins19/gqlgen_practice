@@ -11,5 +11,5 @@ import (
 
 type Resolver struct {
 	DB             *bun.DB
-	StorageService storage.StorageInterface
+	StorageService *storage.StorageInterface
 }

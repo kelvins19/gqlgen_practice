@@ -26,12 +26,8 @@ const (
 )
 
 // DataReader reads data from a database
-type CategoryReader struct {
-	conn *bun.DB
-}
-
-type ProductReader struct {
-	conn *bun.DB
+type DataReader struct {
+	DB *bun.DB
 }
 
 // Loaders wrap your data loaders to inject via middleware
@@ -41,13 +37,16 @@ type Loaders struct {
 }
 
 // NewLoaders instantiates data loaders for the middleware
-func NewLoaders(conn *bun.DB) *Loaders {
+func NewLoaders(db *bun.DB) *Loaders {
 	// define the data loader
-	categoryReader := &CategoryReader{conn: conn}
-	productReader := &ProductReader{conn: conn}
+	categoryReader := &DataReader{DB: db}
+	productReader := &DataReader{DB: db}
+
+	cacheProduct := &dataloader.NoCache[int, []*model.Products]{}
+
 	loaders := &Loaders{
 		CategoryLoader: dataloader.NewBatchedLoader(categoryReader.GetCategories),
-		ProductLoader:  dataloader.NewBatchedLoader(productReader.GetProducts),
+		ProductLoader:  dataloader.NewBatchedLoader(productReader.GetProducts, dataloader.WithCache[int, []*model.Products](cacheProduct)),
 	}
 	return loaders
 }
@@ -69,14 +68,15 @@ func For(ctx context.Context) *Loaders {
 
 // GetUsers implements a batch function that can retrieve many users by ID,
 // for use in a dataloader
-func (r *CategoryReader) GetCategories(ctx context.Context, keys []int) []*dataloader.Result[*model.Categories] {
+func (r *DataReader) GetCategories(ctx context.Context, keys []int) []*dataloader.Result[*model.Categories] {
 	// read all requested users in a single query
 	keySlice := helper.SliceToSql(keys, "(")
 
-	list := []entity.Categories{}
+	list := []*entity.Categories{}
 
-	err := r.conn.NewSelect().Model(&list).Where(fmt.Sprintf("id in %v", keySlice)).Order("id asc").Scan(ctx)
+	err := r.DB.NewSelect().Model(&list).Where(fmt.Sprintf("id in %v", keySlice)).Order("id asc").Scan(ctx)
 	if err != nil {
+		fmt.Println("DB error")
 		panic(err)
 	}
 
@@ -104,20 +104,20 @@ func (r *CategoryReader) GetCategories(ctx context.Context, keys []int) []*datal
 	return output
 }
 
-func (r *ProductReader) GetProducts(c context.Context, keys []int) []*dataloader.Result[[]*model.Products] {
+func (r *DataReader) GetProducts(c context.Context, keys []int) []*dataloader.Result[[]*model.Products] {
 	keySlice := helper.SliceToString(keys)
 
 	list := []entity.Products{}
 
-	err := r.conn.NewSelect().Model(&list).Where(fmt.Sprintf("categories && array[%v]", keySlice)).Order("id asc").Scan(c)
+	err := r.DB.NewSelect().Model(&list).Where(fmt.Sprintf("categories && array[%v]", keySlice)).Order("id asc").Scan(c)
 	if err != nil {
 		panic(err)
 	}
 
 	products := map[int][]*model.Products{}
 	for _, v := range list {
-		for _, cates := range v.Categories {
-			products[cates] = append(products[cates], &model.Products{
+		for _, categories := range v.Categories {
+			products[categories] = append(products[categories], &model.Products{
 				ID:           v.ID,
 				Name:         v.Name,
 				Description:  v.Description,
@@ -140,15 +140,17 @@ func (r *ProductReader) GetProducts(c context.Context, keys []int) []*dataloader
 	return output
 }
 
-func (r *CategoryReader) GetCategory(c context.Context, ids []int) ([]*model.Categories, error) {
+func (r *DataReader) GetCategory(c context.Context, ids []int) ([]*model.Categories, error) {
 	loaders := For(c)
-
 	thunk := loaders.CategoryLoader.LoadMany(c, ids)
-	raw, _ := thunk()
+	raw, err := thunk()
+	if err != nil {
+		return nil, fmt.Errorf("error: %v", err)
+	}
 	return raw, nil
 }
 
-func (r *ProductReader) GetProduct(c context.Context, id int) ([]*model.Products, error) {
+func (r *DataReader) GetProduct(c context.Context, id int) ([]*model.Products, error) {
 	loaders := For(c)
 	thunk := loaders.ProductLoader.Load(c, id)
 	raw, err := thunk()

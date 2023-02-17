@@ -14,29 +14,13 @@ import (
 	"github.com/kelvins19/BCX_BE/entity"
 	"github.com/kelvins19/BCX_BE/graph/model"
 	"github.com/kelvins19/BCX_BE/helper"
+	"github.com/kelvins19/BCX_BE/storage"
 )
 
 // Products is the resolver for the products field.
 func (r *categoriesResolver) Products(ctx context.Context, obj *model.Categories) ([]*model.Products, error) {
-	data := []*entity.Products{}
-
-	whereQuery := fmt.Sprintf("%d = any (categories)", obj.ID)
-	err := r.DB.NewSelect().Model(&data).Where(whereQuery).Order("id asc").Scan(ctx)
-	if err != nil {
-		return nil, err
-	}
-
-	lists := []*model.Products{}
-	for _, v := range data {
-		lists = append(lists, &model.Products{
-			ID:          v.ID,
-			Name:        v.Name,
-			Description: v.Description,
-			Price:       v.Price,
-		})
-	}
-	return lists, nil
-	// return r.StorageService.GetProduct(ctx, obj.ID)
+	storageService := &storage.DataReader{}
+	return storageService.GetProduct(ctx, obj.ID)
 }
 
 // CreateProduct is the resolver for the createProduct field.
@@ -66,7 +50,6 @@ func (r *mutationResolver) CreateProduct(ctx context.Context, input model.NewPro
 
 // UpdateProduct is the resolver for the updateProduct field.
 func (r *mutationResolver) UpdateProduct(ctx context.Context, id int, input model.NewProduct) (*model.Products, error) {
-	// panic(fmt.Errorf("not implemented: UpdateProduct - updateProduct"))
 	data := []*entity.Products{}
 	whereValue := helper.SliceToSql([]int{id}, "(")
 	err := r.DB.NewSelect().Model(&data).Where(fmt.Sprintf("id in %s", whereValue)).Order("id asc").Scan(ctx)
@@ -214,24 +197,8 @@ func (r *mutationResolver) DeleteCategory(ctx context.Context, id int) (*model.C
 
 // Categories is the resolver for the categories field.
 func (r *productsResolver) Categories(ctx context.Context, obj *model.Products) ([]*model.Categories, error) {
-	data := []*entity.Categories{}
-
-	whereValue := helper.SliceToSql(obj.CategoriesId, "(")
-	err := r.DB.NewSelect().Model(&data).Where(fmt.Sprintf("id in %s", whereValue)).Order("id asc").Scan(ctx)
-	if err != nil {
-		return nil, err
-	}
-
-	lists := []*model.Categories{}
-	for _, v := range data {
-		lists = append(lists, &model.Categories{
-			ID:          v.ID,
-			Name:        v.Name,
-			Description: v.Description,
-		})
-	}
-	return lists, nil
-	// return r.StorageService.GetCategory(ctx, obj.CategoriesId)
+	storageService := &storage.DataReader{}
+	return storageService.GetCategory(ctx, obj.CategoriesId)
 }
 
 // GetCategories is the resolver for the getCategories field.
@@ -297,7 +264,6 @@ func (r *queryResolver) GetProducts(ctx context.Context, categoryID *int, name *
 		return list, nil
 	}
 
-	// data, err := serv.ProductsRepo.GetByCategory(c, *category, *name)
 	regex, err := regexp.Compile("[a-zA-Z0-9]")
 	if err != nil {
 		return nil, err
@@ -332,7 +298,6 @@ func (r *queryResolver) GetProducts(ctx context.Context, categoryID *int, name *
 
 // GetSingleProducts is the resolver for the getSingleProducts field.
 func (r *queryResolver) GetSingleProducts(ctx context.Context, id int) (*model.Products, error) {
-	// panic(fmt.Errorf("not implemented: GetSingleProducts - getSingleProducts"))
 	data := []*entity.Products{}
 	whereValue := helper.SliceToSql([]int{id}, "(")
 	err := r.DB.NewSelect().Model(&data).Where(fmt.Sprintf("id in %s", whereValue)).Order("id asc").Scan(ctx)

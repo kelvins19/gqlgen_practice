@@ -10,6 +10,7 @@ import (
 	"github.com/joho/godotenv"
 	generated "github.com/kelvins19/BCX_BE/graph"
 	graph "github.com/kelvins19/BCX_BE/graph"
+	"github.com/kelvins19/BCX_BE/storage"
 	"github.com/spf13/viper"
 )
 
@@ -33,8 +34,10 @@ func main() {
 	srv := handler.NewDefaultServer(
 		generated.NewExecutableSchema(generated.Config{Resolvers: &graph.Resolver{DB: Database}}))
 
+	loaders := storage.NewLoaders(Database)
+
 	http.Handle("/", playground.Handler("GraphQL playground", "/query"))
-	http.Handle("/query", srv)
+	http.Handle("/query", storage.Middleware(loaders, srv))
 
 	log.Printf("connect to http://localhost:%s/ for GraphQL playground", port)
 	log.Fatal(http.ListenAndServe(":"+port, nil))
